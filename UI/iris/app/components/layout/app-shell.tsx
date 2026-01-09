@@ -128,8 +128,8 @@ export default function AppShell({ children }: AppShellProps) {
               <div className="flex items-center gap-2 px-2 py-2">
                 <div className="h-8 w-8 rounded-xl bg-foreground/10 border border-border/60" />
                 <div className="leading-tight">
-                  <div className="text-sm font-semibold">Iris</div>
-                  <div className="text-xs text-muted-foreground">Dashboard</div>
+                  <div className="text-sm font-semibold">Talos</div>
+                  <div className="text-xs text-muted-foreground">Connect · Observe · Act</div>
                 </div>
               </div>
             </SidebarHeader>
