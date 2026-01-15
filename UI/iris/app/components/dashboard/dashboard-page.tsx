@@ -22,10 +22,8 @@ import { useTelemetryEventsToLogs } from "~/hooks/use-telemetry-events-to-logs";
 export function DashboardPage() {
   const { deviceId } = useParams<{ deviceId: string }>();
 
-  // Logs
   const { logs, pushLog } = useLogBuffer([{ ts: Date.now(), msg: "Dashboard iniciado" }], 80);
 
-  // Device name
   const {
     deviceName,
     isEditingName,
@@ -36,7 +34,6 @@ export function DashboardPage() {
     cancelName,
   } = useDeviceName(deviceId);
 
-  // Telemetry stream
   const { points, streamStatus, lastTelemetryAt } = useTelemetryStream({
     url: "/api/telemetry/stream",
     retentionMs: 10 * 60_000,
@@ -46,14 +43,12 @@ export function DashboardPage() {
     lastTelemetryAt != null && Date.now() - lastTelemetryAt <= 5_000;
   const isDeviceConnected = streamStatus === "connected" && isTelemetryFresh;
 
-  // Chart window
   const [windowMs, setWindowMs] = React.useState(120_000);
   const { domainX, visiblePoints, chartData, latestTemp } = useChartWindow(
     points,
     windowMs
   );
 
-  // Metrics + thresholds
   const {
     maxTempNum,
     minTempNum,
@@ -64,7 +59,6 @@ export function DashboardPage() {
     avgTemp,
   } = useTemperatureMetrics(visiblePoints, { maxHot: 30, minCold: 20 });
 
-  // Convert telemetry events to logs
   useTelemetryEventsToLogs({
     isDeviceConnected,
     maxTempNum,
@@ -74,7 +68,6 @@ export function DashboardPage() {
     pushLog,
   });
 
-  // Device info (mock + computed)
   const batteryPct = React.useMemo(() => {
     const s = String(deviceId ?? "device");
     let h = 0;
@@ -109,7 +102,7 @@ export function DashboardPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto w-full max-w-300 px-6 py-8">
+      <main className="mx-auto w-full max-w-350 px-6 py-8">
         <div className="mb-6">
           <DeviceHeader
             deviceName={deviceName}

@@ -7,6 +7,7 @@ export default [
   route("customers", "routes/customers.tsx"),
   route("products", "routes/products.tsx"),
   route("settings", "routes/settings.tsx"),
+  route("analytics", "routes/analytics.tsx"),
 
     // FLUJO OVERVIEW
   route("overview", "routes/overview.products.tsx"),
