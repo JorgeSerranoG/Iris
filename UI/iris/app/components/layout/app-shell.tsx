@@ -8,8 +8,10 @@ import {
   Settings,
   ShoppingBag,
   Users,
+  Moon,
+  Sun,
 } from "lucide-react";
-
+import { useThemeMode } from "~/hooks/use-theme-mode";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import {
@@ -40,6 +42,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "~/components/ui/sidebar";
+
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -89,6 +92,7 @@ function buildBreadcrumbs(pathname: string): Crumb[] {
 
 function Breadcrumbs() {
   const { pathname } = useLocation();
+  const { mounted, mode, toggle } = useThemeMode();
   const crumbs = React.useMemo(() => buildBreadcrumbs(pathname), [pathname]);
 
   return (
@@ -101,7 +105,10 @@ function Breadcrumbs() {
             {idx > 0 && <span className="text-muted-foreground/60">/</span>}
 
             {c.to && !isLast ? (
-              <Link to={c.to} className="hover:text-foreground transition-colors">
+              <Link
+                to={c.to}
+                className="hover:text-foreground transition-colors"
+              >
                 {c.label}
               </Link>
             ) : (
@@ -118,6 +125,7 @@ function Breadcrumbs() {
 
 export default function AppShell({ children }: AppShellProps) {
   const { pathname } = useLocation();
+  const { mounted, mode, toggle } = useThemeMode();
 
   return (
     <TooltipProvider>
@@ -129,7 +137,9 @@ export default function AppShell({ children }: AppShellProps) {
                 <div className="h-8 w-8 rounded-xl bg-foreground/10 border border-border/60" />
                 <div className="leading-tight">
                   <div className="text-sm font-semibold">Talos</div>
-                  <div className="text-xs text-muted-foreground">Connect · Observe · Act</div>
+                  <div className="text-xs text-muted-foreground">
+                    Connect · Observe · Act
+                  </div>
                 </div>
               </div>
             </SidebarHeader>
@@ -143,7 +153,10 @@ export default function AppShell({ children }: AppShellProps) {
                     <SidebarMenuItem>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <SidebarMenuButton asChild isActive={pathname === "/"}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={pathname === "/"}
+                          >
                             <Link to="/">
                               <Home className="h-4 w-4" />
                               <span>Home</span>
@@ -231,7 +244,10 @@ export default function AppShell({ children }: AppShellProps) {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith("/analytics")}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith("/analytics")}
+                      >
                         <Link to="/analytics">
                           <BarChart3 className="h-4 w-4" />
                           <span>Analytics</span>
@@ -283,7 +299,7 @@ export default function AppShell({ children }: AppShellProps) {
               <div className="mx-auto flex max-w-300 items-center gap-3 px-6 py-3">
                 <Breadcrumbs />
 
-                <div className="ml-auto flex items-center gap-3">
+                <div className="ml-auto flex items-center gap-2">
                   <div className="relative w-70 hidden md:block">
                     <Input
                       placeholder="Search"
@@ -293,6 +309,33 @@ export default function AppShell({ children }: AppShellProps) {
                       ⌘ K
                     </div>
                   </div>
+
+                  {/* Toggle Light/Dark */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={toggle}
+                        aria-label="Toggle theme"
+                      >
+                        {/* Evita mismatch SSR: no renderiza icono hasta mount */}
+                        {!mounted ? null : mode === "dark" ? (
+                          <Sun className="h-4 w-4" />
+                        ) : (
+                          <Moon className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {!mounted
+                        ? "Theme"
+                        : mode === "dark"
+                          ? "Modo claro"
+                          : "Modo oscuro"}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             </header>
