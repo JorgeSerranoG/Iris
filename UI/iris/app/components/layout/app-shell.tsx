@@ -231,9 +231,11 @@ export default function AppShell({ children }: AppShellProps) {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton>
-                        <BarChart3 className="h-4 w-4" />
-                        <span>Analytics</span>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith("/analytics")}>
+                        <Link to="/analytics">
+                          <BarChart3 className="h-4 w-4" />
+                          <span>Analytics</span>
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>

@@ -6,6 +6,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
   Pie,
@@ -30,6 +31,7 @@ import {
   Zap,
   Users,
   ListChecks,
+  BatteryCharging,
 } from "lucide-react";
 
 import AppShell from "~/components/layout/app-shell";
@@ -37,7 +39,13 @@ import { cn } from "~/lib/utils";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Separator } from "~/components/ui/separator";
@@ -57,12 +65,28 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 
+/**
+ * Talos accents (match landing)
+ * - White line for charts: #FFFFFF
+ * - Blue shading / glow: ACCENT_1 + ACCENT_3
+ */
+const WHITE = "#FFFFFF";
+const ACCENT_1 = "#8FE4F2";
+const ACCENT_2 = "#93CBD9";
+const ACCENT_3 = "#71ADDE";
+
+const primaryGradientStyle: React.CSSProperties = {
+  background: `linear-gradient(90deg, ${ACCENT_1}, ${ACCENT_3})`,
+  boxShadow: `0 0 0 1px rgba(255,255,255,0.10), 0 18px 70px rgba(0,0,0,0.55)`,
+};
+
 type WidgetSize = "sm" | "md" | "lg" | "xl";
 
 type WidgetType =
   | "kpi-energy"
   | "kpi-costs"
   | "kpi-users"
+  | "kpi-battery"
   | "chart-energy-bars"
   | "chart-costs-donut"
   | "chart-current-area"
@@ -117,9 +141,18 @@ const WIDGET_LIBRARY: WidgetDef[] = [
     group: "KPIs",
   },
   {
+    type: "kpi-battery",
+    title: "Battery remaining",
+    description: "Gauge + ETA (mock)",
+    icon: BatteryCharging,
+    defaultSize: "sm",
+    group: "KPIs",
+  },
+  {
     type: "chart-energy-bars",
     title: "Energy consumption",
-    description: "Stacked bars (24h mock)",
+
+    description: "Stacked bars (mock)",
     icon: Activity,
     defaultSize: "lg",
     group: "Charts",
@@ -127,7 +160,7 @@ const WIDGET_LIBRARY: WidgetDef[] = [
   {
     type: "chart-costs-donut",
     title: "Costs breakdown",
-    description: "Donut + legend",
+    description: "Donut + legend (mock)",
     icon: BadgeDollarSign,
     defaultSize: "md",
     group: "Charts",
@@ -135,7 +168,7 @@ const WIDGET_LIBRARY: WidgetDef[] = [
   {
     type: "chart-current-area",
     title: "Current (A)",
-    description: "Stacked area (realtime mock)",
+    description: "Stacked area (mock)",
     icon: Activity,
     defaultSize: "lg",
     group: "Charts",
@@ -143,7 +176,7 @@ const WIDGET_LIBRARY: WidgetDef[] = [
   {
     type: "chart-voltage-lines",
     title: "Voltage (V)",
-    description: "Multi-line (realtime mock)",
+    description: "Multi-line (mock)",
     icon: Activity,
     defaultSize: "lg",
     group: "Charts",
@@ -151,7 +184,7 @@ const WIDGET_LIBRARY: WidgetDef[] = [
   {
     type: "table-alerts",
     title: "Recent alerts",
-    description: "Ops table mock",
+    description: "Ops table (mock)",
     icon: ListChecks,
     defaultSize: "md",
     group: "Ops",
@@ -211,9 +244,60 @@ const DEFAULT_DASHBOARDS: DashboardConfig[] = [
   },
 ];
 
+/* ---------------------------
+   Background (match landing)
+---------------------------- */
+
+function GlowBg() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        className="absolute -top-44 left-1/2 h-130 w-205 -translate-x-1/2 rounded-full blur-3xl opacity-25"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${ACCENT_1} 0%, transparent 60%)`,
+        }}
+      />
+      <div
+        className="absolute top-14 -left-44 h-130 w-130 rounded-full blur-3xl opacity-18"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${ACCENT_3} 0%, transparent 60%)`,
+        }}
+      />
+      <div
+        className="absolute -bottom-56 -right-56 h-160 w-160 rounded-full blur-3xl opacity-16"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${ACCENT_2} 0%, transparent 60%)`,
+        }}
+      />
+
+      {/* subtle grid with radial mask */}
+      <div
+        className="absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.12) 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+          maskImage:
+            "radial-gradient(circle at 50% 22%, black 0%, transparent 70%)",
+          WebkitMaskImage:
+            "radial-gradient(circle at 50% 22%, black 0%, transparent 70%)",
+        }}
+      />
+    </div>
+  );
+}
+
+/* ---------------------------
+   Page
+---------------------------- */
+
 export function AnalyticsPage() {
-  const [dashboards, setDashboards] = React.useState<DashboardConfig[]>(DEFAULT_DASHBOARDS);
-  const [activeDashboardId, setActiveDashboardId] = React.useState<string>(DEFAULT_DASHBOARDS[0]?.id ?? "");
+  const [dashboards, setDashboards] = React.useState<DashboardConfig[]>(
+    DEFAULT_DASHBOARDS,
+  );
+  const [activeDashboardId, setActiveDashboardId] = React.useState<string>(
+    DEFAULT_DASHBOARDS[0]?.id ?? "",
+  );
   const [widgetQuery, setWidgetQuery] = React.useState("");
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [dragOverId, setDragOverId] = React.useState<string | null>(null);
@@ -285,7 +369,7 @@ export function AnalyticsPage() {
     [updateActiveDashboard],
   );
 
-  // Native drag & drop reorder (mock-friendly, no deps)
+  // Native drag & drop reorder (no deps)
   const onDragStart = (id: string) => setDraggingId(id);
   const onDragEnter = (id: string) => {
     if (!draggingId || draggingId === id) return;
@@ -333,202 +417,244 @@ export function AnalyticsPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-4 p-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
-              <h1 className="truncate text-xl font-semibold tracking-tight">
-                Analytics
-              </h1>
-              <Badge variant="secondary" className="ml-1">
-                mock
-              </Badge>
+      <div className="relative">
+        <GlowBg />
+
+        <div className="relative z-10 mx-auto w-full max-w-500 px-6 py-6">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Panel configurable por el cliente con widgets reordenables (tipo “GIS board”).
-            </p>
-          </div>
 
-          {/* REQUIRED: top-right sheet */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="secondary" className="gap-2">
-                <Settings2 className="h-4 w-4" />
-                Customize
-              </Button>
-            </SheetTrigger>
+            {/* REQUIRED: top-right sheet */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  className="gap-2 text-slate-950 hover:opacity-95 border border-white/10"
+                  style={primaryGradientStyle}
+                >
+                  <Settings2 className="h-4 w-4" />
+                  Customize
+                </Button>
+              </SheetTrigger>
 
-            <SheetContent side="right" className="w-[420px] sm:w-[480px]">
-              <SheetHeader>
-                <SheetTitle>Dashboard builder</SheetTitle>
-                <SheetDescription>
-                  Elige qué dashboard ver y añade widgets al grid.
-                </SheetDescription>
-              </SheetHeader>
+              <SheetContent side="right" className="w-105 sm:w-120">
+                <SheetHeader>
+                  <SheetTitle>Dashboard builder</SheetTitle>
+                  <SheetDescription>
+                    Elige qué dashboard ver y añade widgets al grid.
+                  </SheetDescription>
+                </SheetHeader>
 
-              <div className="mt-6 space-y-5">
-                {/* Dashboard picker */}
-                <div className="space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground">
-                    Dashboard
-                  </div>
-                  <Select value={activeDashboardId} onValueChange={setActiveDashboardId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select dashboard" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dashboards.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Separator />
-
-                {/* Search */}
-                <div className="space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground">
-                    Add widgets
-                  </div>
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={widgetQuery}
-                      onChange={(e) => setWidgetQuery(e.target.value)}
-                      placeholder="Search widgets…"
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-
-                {/* Library */}
-                <ScrollArea className="h-[60vh] pr-2">
-                  <div className="space-y-6">
-                    {Object.entries(groupedLibrary).map(([group, items]) => (
-                      <div key={group} className="space-y-2">
-                        <div className="text-sm font-semibold">{group}</div>
-
-                        <div className="space-y-2">
-                          {items.map((w) => {
-                            const Icon = w.icon;
-                            const already = activeDashboard?.widgets.some((x) => x.type === w.type);
-                            return (
-                              <Card key={w.type} className="border-muted/60">
-                                <CardContent className="flex items-start justify-between gap-3 p-3">
-                                  <div className="flex min-w-0 items-start gap-3">
-                                    <div className="mt-0.5 rounded-md border bg-muted/40 p-2">
-                                      <Icon className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <div className="truncate text-sm font-medium">
-                                          {w.title}
-                                        </div>
-                                        {already ? (
-                                          <Badge variant="outline" className="h-5 px-2 text-[11px]">
-                                            on board
-                                          </Badge>
-                                        ) : null}
-                                      </div>
-                                      <div className="mt-0.5 text-xs text-muted-foreground">
-                                        {w.description}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <Button
-                                    size="sm"
-                                    className="shrink-0 gap-2"
-                                    onClick={() => addWidget(w.type)}
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                    Add
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-
-                <div className="text-xs text-muted-foreground">
-                  Tip: puedes reordenar widgets arrastrando (drag) o con ↑ ↓.
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        {/* Active dashboard title */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="truncate text-base font-semibold">{activeDashboard?.name}</div>
-            <div className="text-sm text-muted-foreground">
-              {activeDashboard?.widgets.length ?? 0} widgets
-            </div>
-          </div>
-        </div>
-
-        {/* Board */}
-        <div
-          className={cn(
-            "rounded-2xl border bg-card/40 p-4",
-            // subtle “GIS grid” vibe
-            "bg-[linear-gradient(to_right,hsl(var(--border)/.10)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/.10)_1px,transparent_1px)]",
-            "bg-[size:48px_48px]",
-          )}
-        >
-          <div className="grid grid-cols-12 gap-4">
-            {activeDashboard?.widgets.map((w) => (
-              <div
-                key={w.id}
-                className={cn(sizeToGrid(w.size))}
-                draggable
-                onDragStart={() => onDragStart(w.id)}
-                onDragEnter={() => onDragEnter(w.id)}
-                onDragOver={(e) => e.preventDefault()}
-                onDragEnd={onDragEnd}
-              >
-                <WidgetCard
-                  widget={w}
-                  isDragging={draggingId === w.id}
-                  isDragOver={dragOverId === w.id}
-                  onRemove={() => removeWidget(w.id)}
-                  onMoveUp={() => moveWidget(w.id, -1)}
-                  onMoveDown={() => moveWidget(w.id, 1)}
-                  onSizeChange={(size) => setWidgetSize(w.id, size)}
-                />
-              </div>
-            ))}
-
-            {/* Empty state */}
-            {activeDashboard?.widgets.length === 0 ? (
-              <div className="col-span-12">
-                <Card className="border-dashed">
-                  <CardContent className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-                    <LayoutDashboard className="h-6 w-6 text-muted-foreground" />
-                    <div className="text-sm font-medium">No widgets yet</div>
-                    <div className="max-w-sm text-xs text-muted-foreground">
-                      Abre <span className="font-medium">Customize</span> y añade widgets al dashboard.
+                <div className="mt-6 space-y-5">
+                  {/* Dashboard picker */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-medium text-muted-foreground">
+                      Dashboard
                     </div>
-                  </CardContent>
-                </Card>
+                    <Select
+                      value={activeDashboardId}
+                      onValueChange={setActiveDashboardId}
+                    >
+                      <SelectTrigger className="border-white/10 bg-white/5">
+                        <SelectValue placeholder="Select dashboard" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dashboards.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Separator className="bg-border/40" />
+
+                  {/* Search */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-medium text-muted-foreground">
+                      Add widgets
+                    </div>
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={widgetQuery}
+                        onChange={(e) => setWidgetQuery(e.target.value)}
+                        placeholder="Search widgets…"
+                        className="pl-9 border-white/10 bg-white/5"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Library */}
+                  <ScrollArea className="h-[60vh] pr-2">
+                    <div className="space-y-6">
+                      {Object.entries(groupedLibrary).map(([group, items]) => (
+                        <div key={group} className="space-y-2">
+                          <div className="text-sm font-semibold">{group}</div>
+
+                          <div className="space-y-2">
+                            {items.map((w) => {
+                              const Icon = w.icon;
+                              const already = activeDashboard?.widgets.some(
+                                (x) => x.type === w.type,
+                              );
+
+                              return (
+                                <Card
+                                  key={w.type}
+                                  className="bg-card/25 border-border/60 backdrop-blur relative overflow-hidden"
+                                >
+                                  <div
+                                    className="absolute inset-x-0 top-0 h-0.5 opacity-80"
+                                    style={{
+                                      background: `linear-gradient(90deg, transparent, ${ACCENT_1}, ${ACCENT_3}, transparent)`,
+                                    }}
+                                  />
+
+                                  <CardContent className="flex items-start justify-between gap-3 p-3">
+                                    <div className="flex min-w-0 items-start gap-3">
+                                      <div className="mt-0.5 rounded-md border border-white/10 bg-white/5 p-2">
+                                        <Icon className="h-4 w-4 text-muted-foreground" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <div className="truncate text-sm font-medium">
+                                            {w.title}
+                                          </div>
+                                          {already ? (
+                                            <Badge
+                                              variant="outline"
+                                              className="h-5 px-2 text-[11px] border-white/10 bg-white/5 text-foreground/75"
+                                            >
+                                              on board
+                                            </Badge>
+                                          ) : null}
+                                        </div>
+                                        <div className="mt-0.5 text-xs text-muted-foreground">
+                                          {w.description}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <Button
+                                      size="sm"
+                                      className="shrink-0 gap-2 text-slate-950 hover:opacity-95 border border-white/10"
+                                      style={primaryGradientStyle}
+                                      onClick={() => addWidget(w.type)}
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      Add
+                                    </Button>
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+
+                  <div className="text-xs text-muted-foreground">
+                    Tip: puedes reordenar widgets arrastrando (drag) o con ↑ ↓.
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Active dashboard title */}
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-base font-semibold">
+                {activeDashboard?.name}
               </div>
-            ) : null}
+              <div className="text-sm text-muted-foreground">
+                {activeDashboard?.widgets.length ?? 0} widgets
+              </div>
+            </div>
+          </div>
+
+          {/* Board */}
+          <div className="mt-4 rounded-2xl border border-border/60 bg-card/20 backdrop-blur relative overflow-hidden p-4">
+            {/* top accent hairline */}
+            <div
+              className="absolute inset-x-0 top-0 h-0.5 opacity-80"
+              style={{
+                background: `linear-gradient(90deg, transparent, ${ACCENT_1}, ${ACCENT_3}, transparent)`,
+              }}
+            />
+
+            {/* subtle grid overlay w/ mask */}
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.08]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, rgba(255,255,255,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.10) 1px, transparent 1px)",
+                backgroundSize: "56px 56px",
+                maskImage:
+                  "radial-gradient(circle at 50% 30%, black 0%, transparent 70%)",
+                WebkitMaskImage:
+                  "radial-gradient(circle at 50% 30%, black 0%, transparent 70%)",
+              }}
+            />
+
+            <div className="relative grid grid-cols-12 gap-4">
+              {activeDashboard?.widgets.map((w) => (
+                <div
+                  key={w.id}
+                  className={cn(sizeToGrid(w.size))}
+                  draggable
+                  onDragStart={() => onDragStart(w.id)}
+                  onDragEnter={() => onDragEnter(w.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragEnd={onDragEnd}
+                >
+                  <WidgetCard
+                    widget={w}
+                    isDragging={draggingId === w.id}
+                    isDragOver={dragOverId === w.id}
+                    onRemove={() => removeWidget(w.id)}
+                    onMoveUp={() => moveWidget(w.id, -1)}
+                    onMoveDown={() => moveWidget(w.id, 1)}
+                    onSizeChange={(size) => setWidgetSize(w.id, size)}
+                  />
+                </div>
+              ))}
+
+              {/* Empty state */}
+              {activeDashboard?.widgets.length === 0 ? (
+                <div className="col-span-12">
+                  <Card className="border-dashed bg-card/25 border-border/60 backdrop-blur relative overflow-hidden">
+                    <div
+                      className="absolute inset-x-0 top-0 h-0.5 opacity-80"
+                      style={{
+                        background: `linear-gradient(90deg, transparent, ${ACCENT_1}, ${ACCENT_3}, transparent)`,
+                      }}
+                    />
+                    <CardContent className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+                      <LayoutDashboard className="h-6 w-6 text-muted-foreground" />
+                      <div className="text-sm font-medium">No widgets yet</div>
+                      <div className="max-w-sm text-xs text-muted-foreground">
+                        Abre <span className="font-medium">Customize</span> y añade widgets al dashboard.
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
     </AppShell>
   );
 }
+
+/* ---------------------------
+   Widget card
+---------------------------- */
 
 function WidgetCard(props: {
   widget: WidgetInstance;
@@ -547,14 +673,32 @@ function WidgetCard(props: {
   return (
     <Card
       className={cn(
-        "h-full overflow-hidden transition",
-        props.isDragging && "ring-2 ring-primary/50",
-        props.isDragOver && "ring-2 ring-primary/30",
+        "h-full overflow-hidden bg-card/25 border-border/60 backdrop-blur relative",
+        props.isDragging && "ring-2 ring-white/20",
+        props.isDragOver && "ring-2 ring-white/15",
       )}
     >
+      {/* top accent line */}
+      <div
+        className="absolute inset-x-0 top-0 h-0.5 opacity-80"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${ACCENT_1}, ${ACCENT_3}, transparent)`,
+        }}
+      />
+
+      {/* subtle corner glow */}
+      <div
+        className="pointer-events-none absolute -top-24 -right-24 h-56 w-56 rounded-full blur-3xl opacity-20"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${ACCENT_1} 0%, transparent 60%)`,
+        }}
+      />
+
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="min-w-0">
-          <CardTitle className="truncate text-sm">{def?.title ?? props.widget.type}</CardTitle>
+          <CardTitle className="truncate text-sm">
+            {def?.title ?? props.widget.type}
+          </CardTitle>
           <CardDescription className="truncate text-xs">
             {def?.description ?? "Widget"}
           </CardDescription>
@@ -562,20 +706,37 @@ function WidgetCard(props: {
 
         <div className="flex items-center gap-1">
           <div className="hidden md:flex">
-            <Button variant="ghost" size="icon" className="cursor-grab active:cursor-grabbing">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="cursor-grab active:cursor-grabbing"
+            >
               <GripVertical className="h-4 w-4 text-muted-foreground" />
             </Button>
           </div>
 
-          <Button variant="ghost" size="icon" onClick={props.onMoveUp} title="Move up">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={props.onMoveUp}
+            title="Move up"
+          >
             <ChevronUp className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={props.onMoveDown} title="Move down">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={props.onMoveDown}
+            title="Move down"
+          >
             <ChevronDown className="h-4 w-4" />
           </Button>
 
-          <Select value={props.widget.size} onValueChange={(v) => props.onSizeChange(v as WidgetSize)}>
-            <SelectTrigger className="h-8 w-[92px]">
+          <Select
+            value={props.widget.size}
+            onValueChange={(v) => props.onSizeChange(v as WidgetSize)}
+          >
+            <SelectTrigger className="h-8 w-23 border-white/10 bg-white/5">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -599,14 +760,31 @@ function WidgetCard(props: {
   );
 }
 
+/* ---------------------------
+   Widget router
+---------------------------- */
+
 function WidgetBody(props: { widget: WidgetInstance }) {
   switch (props.widget.type) {
     case "kpi-energy":
-      return <KpiCard icon={Zap} label="Energy today" value="1.62 kWh" delta="+4.2%" />;
+      return (
+        <KpiCard icon={Zap} label="Energy today" value="1.62 kWh" delta="+4.2%" />
+      );
     case "kpi-costs":
-      return <KpiCard icon={BadgeDollarSign} label="Costs (cycle)" value="€293.50" delta="-1.4%" negative />;
+      return (
+        <KpiCard
+          icon={BadgeDollarSign}
+          label="Costs (cycle)"
+          value="€293.50"
+          delta="-1.4%"
+          negative
+        />
+      );
     case "kpi-users":
       return <KpiCard icon={Users} label="Weekly active" value="21.7%" delta="+2.9%" />;
+
+    case "kpi-battery":
+      return <BatteryWidget />;
 
     case "chart-energy-bars":
       return <EnergyBarsWidget />;
@@ -626,7 +804,7 @@ function WidgetBody(props: { widget: WidgetInstance }) {
 }
 
 /* ---------------------------
-   MOCK WIDGETS (charts + UI)
+   KPI (white stroke + blue fill)
 ---------------------------- */
 
 function KpiCard(props: {
@@ -638,6 +816,20 @@ function KpiCard(props: {
 }) {
   const Icon = props.icon;
   const data = React.useMemo(() => mockSpark(24), []);
+  const gid = React.useId();
+
+  const deltaStyle: React.CSSProperties = props.negative
+    ? {
+        borderColor: "rgba(255,255,255,0.10)",
+        background: "rgba(255,255,255,0.04)",
+        color: "rgba(255,255,255,0.75)",
+      }
+    : {
+        borderColor: "rgba(255,255,255,0.10)",
+        background: "rgba(255,255,255,0.04)",
+        color: ACCENT_1,
+      };
+
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
@@ -646,11 +838,10 @@ function KpiCard(props: {
           <span className="truncate">{props.label}</span>
         </div>
         <div className="mt-2 text-2xl font-semibold tracking-tight">{props.value}</div>
+
         <div
-          className={cn(
-            "mt-1 inline-flex items-center rounded-md border px-2 py-0.5 text-[11px]",
-            props.negative ? "border-destructive/30 text-destructive" : "border-emerald-500/30 text-emerald-500",
-          )}
+          className="mt-1 inline-flex items-center rounded-md border px-2 py-0.5 text-[11px]"
+          style={deltaStyle}
         >
           {props.delta}
         </div>
@@ -660,17 +851,19 @@ function KpiCard(props: {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
             <defs>
-              <linearGradient id="kpiFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.0} />
+              <linearGradient id={`kpiFill_${gid}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={ACCENT_1} stopOpacity={0.30} />
+                <stop offset="100%" stopColor={ACCENT_1} stopOpacity={0.0} />
               </linearGradient>
             </defs>
+
             <Area
               type="monotone"
               dataKey="v"
-              stroke="hsl(var(--primary))"
-              fill="url(#kpiFill)"
-              strokeWidth={2}
+              stroke={WHITE}
+              strokeOpacity={0.9}
+              fill={`url(#kpiFill_${gid})`}
+              strokeWidth={2.2}
               dot={false}
             />
           </AreaChart>
@@ -680,30 +873,40 @@ function KpiCard(props: {
   );
 }
 
+/* ---------------------------
+   Charts: white + blue shading
+---------------------------- */
+
 function EnergyBarsWidget() {
   const data = React.useMemo(() => mockEnergyBars(48), []);
   return (
-    <div className="h-[260px] w-full">
+    <div className="h-65 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 10, right: 12, left: -10, bottom: 8 }}>
-          <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.35} vertical={false} />
+          <CartesianGrid
+            stroke="rgba(255,255,255,0.08)"
+            strokeOpacity={1}
+            vertical={false}
+          />
           <XAxis
             dataKey="t"
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "rgba(255,255,255,0.55)" }}
             tickLine={false}
             axisLine={false}
             interval={5}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "rgba(255,255,255,0.55)" }}
             tickLine={false}
             axisLine={false}
             width={34}
           />
           <RechartsTooltip content={<DarkTooltip />} />
-          <Bar dataKey="a" stackId="x" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="b" stackId="x" fill="hsl(var(--primary) / 0.65)" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="c" stackId="x" fill="hsl(var(--primary) / 0.45)" radius={[2, 2, 0, 0]} />
+
+          {/* White bars with opacity tiers */}
+          <Bar dataKey="a" stackId="x" fill={WHITE} fillOpacity={0.85} radius={[2, 2, 0, 0]} />
+          <Bar dataKey="b" stackId="x" fill={WHITE} fillOpacity={0.55} radius={[2, 2, 0, 0]} />
+          <Bar dataKey="c" stackId="x" fill={WHITE} fillOpacity={0.30} radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -722,7 +925,7 @@ function CostsDonutWidget() {
 
   return (
     <div className="grid gap-3 md:grid-cols-[1fr_160px]">
-      <div className="h-[220px] w-full">
+      <div className="h-55 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <RechartsTooltip content={<DarkTooltip />} />
@@ -733,15 +936,16 @@ function CostsDonutWidget() {
               innerRadius={55}
               outerRadius={85}
               paddingAngle={2}
-              stroke="hsl(var(--background))"
+              stroke="rgba(0,0,0,0.35)"
               strokeWidth={2}
             >
-              {/* simple palette derived from primary */}
+              {/* White segments with opacity tiers */}
               {data.map((_, i) => (
-                <React.Fragment key={i}>
-                  {/* Recharts expects <Cell>, but to avoid extra import we use the default color per segment via CSS variables is not possible here.
-                      If quieres colores distintos, dime qué tokens tenéis para charts y lo ajusto a vuestro sistema. */}
-                </React.Fragment>
+                <Cell
+                  key={i}
+                  fill={WHITE}
+                  fillOpacity={i === 0 ? 0.85 : i === 1 ? 0.55 : 0.30}
+                />
               ))}
             </Pie>
           </PieChart>
@@ -752,15 +956,16 @@ function CostsDonutWidget() {
         <LegendRow label="Base tier" value="€200.00" />
         <LegendRow label="On-demand" value="€61.00" />
         <LegendRow label="Caching" value="€32.50" />
-        <Separator />
+        <Separator className="bg-border/40" />
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Total</span>
           <span className="font-semibold">€293.50</span>
         </div>
-      </div>
 
-      {/* NOTE: Pie segments are same color by default; if you already have a chart palette system (e.g. --chart-1..5),
-          te lo dejo listo al momento para que quede exactamente como vuestros charts. */}
+        <div className="pt-1 text-xs text-muted-foreground">
+          White series · blue accent
+        </div>
+      </div>
     </div>
   );
 }
@@ -776,36 +981,172 @@ function LegendRow(props: { label: string; value: string }) {
 
 function CurrentAreaWidget() {
   const data = React.useMemo(() => mockStacked(60), []);
+  const gid = React.useId();
+
   return (
-    <div className="h-[260px] w-full">
+    <div className="h-65 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 10, right: 12, left: -10, bottom: 8 }}>
           <defs>
-            <linearGradient id="areaA" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+            <linearGradient id={`areaAccent_${gid}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={ACCENT_1} stopOpacity={0.28} />
+              <stop offset="100%" stopColor={ACCENT_1} stopOpacity={0.0} />
+            </linearGradient>
+            <linearGradient id={`areaAccent2_${gid}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={ACCENT_3} stopOpacity={0.18} />
+              <stop offset="100%" stopColor={ACCENT_3} stopOpacity={0.0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.35} vertical={false} />
+
+          <CartesianGrid
+            stroke="rgba(255,255,255,0.08)"
+            strokeOpacity={1}
+            vertical={false}
+          />
           <XAxis
             dataKey="t"
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "rgba(255,255,255,0.55)" }}
             tickLine={false}
             axisLine={false}
             interval={7}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "rgba(255,255,255,0.55)" }}
             tickLine={false}
             axisLine={false}
             width={34}
           />
           <RechartsTooltip content={<DarkTooltip />} />
-          <Area type="monotone" dataKey="a" stackId="1" stroke="hsl(var(--primary))" fill="url(#areaA)" strokeWidth={2} dot={false} />
-          <Area type="monotone" dataKey="b" stackId="1" stroke="hsl(var(--primary) / 0.65)" fill="hsl(var(--primary) / 0.12)" strokeWidth={2} dot={false} />
-          <Area type="monotone" dataKey="c" stackId="1" stroke="hsl(var(--primary) / 0.45)" fill="hsl(var(--primary) / 0.08)" strokeWidth={2} dot={false} />
+
+          {/* All strokes WHITE, fills are blue accents */}
+          <Area
+            type="monotone"
+            dataKey="a"
+            stackId="1"
+            stroke={WHITE}
+            strokeOpacity={0.9}
+            strokeWidth={2.2}
+            fill={`url(#areaAccent_${gid})`}
+            dot={false}
+          />
+          <Area
+            type="monotone"
+            dataKey="b"
+            stackId="1"
+            stroke={WHITE}
+            strokeOpacity={0.65}
+            strokeWidth={2.0}
+            fill={`url(#areaAccent2_${gid})`}
+            dot={false}
+          />
+          <Area
+            type="monotone"
+            dataKey="c"
+            stackId="1"
+            stroke={WHITE}
+            strokeOpacity={0.45}
+            strokeWidth={2.0}
+            fill={ACCENT_1}
+            fillOpacity={0.06}
+            dot={false}
+          />
         </AreaChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+function BatteryWidget() {
+  // Mock values (luego lo conectamos a telemetry real)
+  const pct = 14; // 0..100
+  const eta = "2h 18m";
+  const health = "Good";
+
+  // Bars config (match mock: many thin vertical bars)
+  const bars = 38;
+  const filled = Math.round((pct / 100) * bars);
+
+  // SVG sizing (keeps the exact “barcode” look)
+  const W = 370;
+  const H = 80;
+  const padX = 12
+  const padY = 12;
+  const barW = 5;
+  const gap = 4;
+  const innerH = H - padY * 2;
+
+  return (
+    <div className="flex items-center justify-between gap-6">
+      {/* LEFT: text block like your KPI style */}
+      <div className="min-w-0">
+        <div className="text-xs text-muted-foreground">Battery</div>
+
+        <div className="mt-1 flex items-baseline gap-2">
+          <div className="text-2xl font-semibold tracking-tight">{pct}%</div>
+          <div
+            className="rounded-full border px-2 py-0.5 text-[11px]"
+            style={{
+              borderColor: "rgba(255,255,255,0.10)",
+              background: "rgba(255,255,255,0.04)",
+              color: "rgba(255,255,255,0.72)",
+            }}
+          >
+            {health}
+          </div>
+        </div>
+
+        <div className="mt-1 text-xs text-muted-foreground">
+          Estimated runtime: <span className="text-foreground/80">{eta}</span>
+        </div>
+      </div>
+
+      {/* RIGHT: barcode chart area (as in mock #1) */}
+      <div
+        className="shrink-0 overflow-hidden rounded-lg border border-white/10"
+        style={{
+          width: W,
+          height: H,
+          background: "rgba(255,255,255,0.06)",
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",
+        }}
+      >
+        <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H}>
+          {/* subtle top gloss */}
+          <rect
+            x="0"
+            y="0"
+            width={W}
+            height={H}
+            fill="url(#batteryGloss)"
+            opacity="1"
+          />
+          <defs>
+            <linearGradient id="batteryGloss" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.06" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {Array.from({ length: bars }).map((_, i) => {
+            const x = padX + i * (barW + gap);
+            const y = padY;
+            const opacity = i < filled ? 0.90 : 0.22; // filled vs remaining (like mock)
+
+            return (
+              <rect
+                key={i}
+                x={x}
+                y={y}
+                width={barW}
+                height={innerH}
+                rx={1.2}
+                fill="#ffffff"
+                fillOpacity={opacity}
+              />
+            );
+          })}
+        </svg>
+      </div>
     </div>
   );
 }
@@ -813,33 +1154,43 @@ function CurrentAreaWidget() {
 function VoltageLinesWidget() {
   const data = React.useMemo(() => mockLines(60), []);
   return (
-    <div className="h-[260px] w-full">
+    <div className="h-65 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 12, left: -10, bottom: 8 }}>
-          <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.35} vertical={false} />
+          <CartesianGrid
+            stroke="rgba(255,255,255,0.08)"
+            strokeOpacity={1}
+            vertical={false}
+          />
           <XAxis
             dataKey="t"
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "rgba(255,255,255,0.55)" }}
             tickLine={false}
             axisLine={false}
             interval={7}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 11, fill: "rgba(255,255,255,0.55)" }}
             tickLine={false}
             axisLine={false}
             width={34}
             domain={[228, 238]}
           />
           <RechartsTooltip content={<DarkTooltip />} />
-          <Line type="monotone" dataKey="a" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="b" stroke="hsl(var(--primary) / 0.65)" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="c" stroke="hsl(var(--primary) / 0.45)" strokeWidth={2} dot={false} />
+
+          {/* White lines with dash patterns for readability */}
+          <Line type="monotone" dataKey="a" stroke={WHITE} strokeOpacity={0.95} strokeWidth={2.2} dot={false} />
+          <Line type="monotone" dataKey="b" stroke={WHITE} strokeOpacity={0.65} strokeWidth={2.0} strokeDasharray="6 4" dot={false} />
+          <Line type="monotone" dataKey="c" stroke={WHITE} strokeOpacity={0.40} strokeWidth={2.0} strokeDasharray="2 6" dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
   );
 }
+
+/* ---------------------------
+   Ops widgets
+---------------------------- */
 
 function AlertsTableWidget() {
   const rows = React.useMemo(
@@ -854,29 +1205,60 @@ function AlertsTableWidget() {
   );
 
   const badgeFor = (sev: string) => {
-    if (sev === "crit") return <Badge className="bg-destructive text-destructive-foreground">crit</Badge>;
-    if (sev === "warn") return <Badge variant="secondary">warn</Badge>;
-    return <Badge variant="outline">info</Badge>;
+    const base =
+      "h-5 px-2 text-[11px] font-medium border rounded-full backdrop-blur";
+
+    if (sev === "crit") {
+      return (
+        <Badge className={cn(base, "border-red-500/35 bg-red-500/18 text-red-200")}>
+          crit
+        </Badge>
+      );
+    }
+
+    if (sev === "warn") {
+      return (
+        <Badge className={cn(base, "border-amber-500/35 bg-amber-500/18 text-amber-200")}>
+          warn
+        </Badge>
+      );
+    }
+
+    // info (blue accent: #8FE4F2 / #71ADDE)
+    return (
+      <Badge
+        className={cn(
+          base,
+          "border-[rgba(113,173,222,0.40)] bg-[rgba(113,173,222,0.18)] text-[rgba(143,228,242,0.95)]",
+        )}
+      >
+        info
+      </Badge>
+    );
   };
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border">
-        <div className="grid grid-cols-[88px_90px_1fr] gap-0 border-b bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+      <div className="rounded-xl border border-border/60 bg-white/5 overflow-hidden">
+        <div className="grid grid-cols-[88px_90px_1fr] gap-0 border-b border-white/10 bg-white/5 px-3 py-2 text-xs text-muted-foreground">
           <div>Time</div>
           <div>Severity</div>
           <div>Message</div>
         </div>
-        <div className="divide-y">
+        <div className="divide-y divide-white/10">
           {rows.map((r, i) => (
-            <div key={i} className="grid grid-cols-[88px_90px_1fr] items-center gap-0 px-3 py-2">
+            <div
+              key={i}
+              className="grid grid-cols-[88px_90px_1fr] items-center gap-0 px-3 py-2"
+            >
               <div className="text-xs text-muted-foreground">{r.ts}</div>
               <div>{badgeFor(r.sev)}</div>
-              <div className="truncate text-sm">{r.msg}</div>
+              <div className="truncate text-sm text-foreground/85">{r.msg}</div>
             </div>
           ))}
         </div>
       </div>
+
       <div className="text-xs text-muted-foreground">
         Mock: aquí luego enchufaremos logs/alerts reales del backend.
       </div>
@@ -885,22 +1267,42 @@ function AlertsTableWidget() {
 }
 
 function SitesMapWidget() {
-  // Pure mock “GIS board” look (no map deps).
   return (
-    <div className="relative h-[360px] w-full overflow-hidden rounded-xl border bg-muted/10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.18),transparent_45%),radial-gradient(circle_at_80%_70%,hsl(var(--primary)/0.10),transparent_55%)]" />
-      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,hsl(var(--border)/.25)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/.25)_1px,transparent_1px)] [background-size:56px_56px]" />
-      <div className="absolute left-4 top-4 flex items-center gap-2 rounded-lg border bg-background/60 px-3 py-2 backdrop-blur">
+    <div className="relative h-90 w-full overflow-hidden rounded-xl border border-border/60 bg-card/20">
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            `radial-gradient(circle at 30% 20%, ${ACCENT_1}33, transparent 45%),` +
+            `radial-gradient(circle at 80% 70%, ${ACCENT_3}22, transparent 55%)`,
+        }}
+      />
+
+      <div
+        className="absolute inset-0 opacity-[0.10]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(255,255,255,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.10) 1px, transparent 1px)",
+          backgroundSize: "56px 56px",
+        }}
+      />
+
+      <div className="absolute left-4 top-4 flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 backdrop-blur">
         <MapPinned className="h-4 w-4 text-muted-foreground" />
         <div className="text-sm font-medium">Sites overview</div>
-        <Badge variant="secondary" className="ml-2">mock</Badge>
+        <Badge
+          variant="secondary"
+          className="ml-2 border border-white/10 bg-white/5 text-foreground/80"
+        >
+          mock
+        </Badge>
       </div>
 
       {/* markers */}
-      <Marker x="18%" y="62%" label="Plant A" />
-      <Marker x="46%" y="38%" label="Plant B" />
-      <Marker x="72%" y="58%" label="Warehouse" />
-      <Marker x="62%" y="22%" label="Office" />
+      <Marker x="18%" y="62%" label="Plant A" tone={ACCENT_1} />
+      <Marker x="46%" y="38%" label="Plant B" tone={ACCENT_3} />
+      <Marker x="72%" y="58%" label="Warehouse" tone={ACCENT_2} />
+      <Marker x="62%" y="22%" label="Office" tone={ACCENT_1} />
 
       {/* bottom info */}
       <div className="absolute bottom-4 left-4 right-4 grid gap-3 md:grid-cols-3">
@@ -912,13 +1314,19 @@ function SitesMapWidget() {
   );
 }
 
-function Marker(props: { x: string; y: string; label: string }) {
+function Marker(props: { x: string; y: string; label: string; tone: string }) {
   return (
     <div className="absolute" style={{ left: props.x, top: props.y }}>
       <div className="group relative">
-        <div className="h-3 w-3 rounded-full bg-primary shadow" />
-        <div className="absolute -inset-3 rounded-full bg-primary/20 blur-sm" />
-        <div className="pointer-events-none absolute left-1/2 top-4 hidden -translate-x-1/2 whitespace-nowrap rounded-md border bg-background/70 px-2 py-1 text-xs backdrop-blur group-hover:block">
+        <div
+          className="h-3 w-3 rounded-full shadow"
+          style={{ background: props.tone }}
+        />
+        <div
+          className="absolute -inset-3 rounded-full blur-sm opacity-60"
+          style={{ background: `${props.tone}33` }}
+        />
+        <div className="pointer-events-none absolute left-1/2 top-4 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-foreground/85 backdrop-blur group-hover:block">
           {props.label}
         </div>
       </div>
@@ -928,7 +1336,7 @@ function Marker(props: { x: string; y: string; label: string }) {
 
 function MiniStat(props: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border bg-background/60 p-3 backdrop-blur">
+    <div className="rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur">
       <div className="text-xs text-muted-foreground">{props.label}</div>
       <div className="mt-1 text-lg font-semibold">{props.value}</div>
     </div>
@@ -936,14 +1344,14 @@ function MiniStat(props: { label: string; value: string }) {
 }
 
 /* ---------------------------
-   Tooltip (darker popover)
+   Tooltip (dark, readable)
 ---------------------------- */
 
 function DarkTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-lg border bg-popover/90 px-3 py-2 text-xs shadow-xl backdrop-blur">
+    <div className="rounded-lg border border-white/10 bg-black/55 px-3 py-2 text-xs shadow-xl backdrop-blur">
       <div className="mb-1 font-medium text-foreground">{label}</div>
       <div className="space-y-0.5 text-muted-foreground">
         {payload.map((p: any) => (
@@ -976,7 +1384,6 @@ function mockSpark(n: number) {
 }
 
 function mockEnergyBars(n: number) {
-  // stacked kWh bars
   const start = 0;
   return Array.from({ length: n }).map((_, i) => {
     const t = (start + i) % 24;
@@ -991,8 +1398,9 @@ function mockEnergyBars(n: number) {
 }
 
 function mockStacked(n: number) {
-  // stacked amp-like
-  let a = 3.2, b = 10.8, c = 7.1;
+  let a = 3.2,
+    b = 10.8,
+    c = 7.1;
   return Array.from({ length: n }).map((_, i) => {
     a += (Math.random() - 0.5) * 0.25;
     b += (Math.random() - 0.5) * 0.35;
@@ -1003,7 +1411,9 @@ function mockStacked(n: number) {
     c = clamp(c, 5.6, 9.1);
 
     return {
-      t: `12:${String(26 + Math.floor(i / 6)).padStart(2, "0")}:${String((i * 10) % 60).padStart(2, "0")}`,
+      t: `12:${String(26 + Math.floor(i / 6)).padStart(2, "0")}:${String(
+        (i * 10) % 60,
+      ).padStart(2, "0")}`,
       a: +a.toFixed(2),
       b: +b.toFixed(2),
       c: +c.toFixed(2),
@@ -1012,7 +1422,9 @@ function mockStacked(n: number) {
 }
 
 function mockLines(n: number) {
-  let a = 232.2, b = 233.1, c = 233.4;
+  let a = 232.2,
+    b = 233.1,
+    c = 233.4;
   return Array.from({ length: n }).map((_, i) => {
     a += (Math.random() - 0.45) * 0.4;
     b += (Math.random() - 0.45) * 0.35;
@@ -1023,7 +1435,9 @@ function mockLines(n: number) {
     c = clamp(c, 231.5, 237.5);
 
     return {
-      t: `12:${String(26 + Math.floor(i / 6)).padStart(2, "0")}:${String((i * 10) % 60).padStart(2, "0")}`,
+      t: `12:${String(26 + Math.floor(i / 6)).padStart(2, "0")}:${String(
+        (i * 10) % 60,
+      ).padStart(2, "0")}`,
       a: +a.toFixed(2),
       b: +b.toFixed(2),
       c: +c.toFixed(2),

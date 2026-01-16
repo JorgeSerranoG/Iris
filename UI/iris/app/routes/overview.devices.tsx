@@ -98,8 +98,7 @@ function DeviceCard(props: {
   return (
     <Card
       className={[
-        // ✅ CLAVE: aspect-square hace la tarjeta cuadrada
-        // Si un día quieres otra proporción: cambia "aspect-square" por "aspect-[4/3]" o "aspect-[16/10]"
+        // Para cambiar la proporción de las tarjetas cambiar "aspect-square" por "aspect-[4/3]" o "aspect-[16/10]"
         "aspect-square h-auto w-full",
         "rounded-xl border border-border/60 bg-card/30 backdrop-blur",
         device.navigatesToDashboard
@@ -109,7 +108,6 @@ function DeviceCard(props: {
     >
       <Wrapper {...(wrapperProps as any)} className="block h-full">
         <CardContent className="p-4 h-full flex flex-col gap-3">
-          {/* Top row */}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-lg font-semibold">
@@ -123,7 +121,6 @@ function DeviceCard(props: {
             </div>
           </div>
 
-          {/* Center metric */}
           <div className="flex-1 flex items-center justify-center text-center">
             <div>
               <div className="text-6xl font-semibold tracking-tight leading-none">
@@ -135,7 +132,6 @@ function DeviceCard(props: {
             </div>
           </div>
 
-          {/* Bottom row */}
           <div className="flex items-center justify-between">
             <TooltipProvider>
               <Tooltip>
@@ -218,7 +214,7 @@ export default function OverviewDevicesPage() {
         primaryMetricValue: "27.4",
         alarm: { name: "Sobretemperatura" },
         favoriteDefault: true,
-        navigatesToDashboard: true, // SOLO este abre el dashboard por ahora
+        navigatesToDashboard: true, 
       },
       {
         id: "device-2",
@@ -276,9 +272,7 @@ export default function OverviewDevicesPage() {
           </p>
         </div>
 
-        {/* ✅ CLAVE: este contenedor es el que hace scroll */}
         <div className="flex-1 min-h-0 overflow-auto">
-          {/* Matriz: 3 columnas y N filas (en desktop lo dejamos en 3) */}
           <div className="grid w-full gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {devices.map((d) => (
               <DeviceCard
